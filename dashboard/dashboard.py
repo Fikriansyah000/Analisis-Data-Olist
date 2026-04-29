@@ -1,12 +1,3 @@
-"""
-dashboard.py
-============
-Streamlit Dashboard – Analitik E-Commerce Olist
-Menampilkan 4 pertanyaan bisnis dengan layout F-Pattern.
-
-Cara pakai:
-    streamlit run dashboard/dashboard.py
-"""
 
 import os
 import numpy as np
@@ -21,8 +12,42 @@ import streamlit as st
 # ============================================================================
 st.set_page_config(
     page_title="Dashboard Analitik E-Commerce Olist",
-    page_icon="🛒",
+    page_icon="",
     layout="wide",
+)
+
+# -- Custom Font & Styling --
+st.markdown(
+    """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Playfair Display', serif !important;
+    }
+
+    .stMetric label {
+        font-family: 'Space Grotesk', sans-serif !important;
+    }
+
+    .stMetric [data-testid="stMetricValue"] {
+        font-family: 'Playfair Display', serif !important;
+    }
+
+    .small-subtitle {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 0.85rem;
+        color: #888;
+        margin-top: -10px;
+        margin-bottom: 10px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 # ============================================================================
@@ -50,11 +75,11 @@ except FileNotFoundError:
 # 3. SIDEBAR – Panel Interaktif
 # ============================================================================
 with st.sidebar:
-    st.title("🛒 Olist Dashboard")
+    st.title("Olist Dashboard")
     st.markdown("---")
 
     # -- Filter Waktu --
-    st.subheader("📅 Filter Waktu")
+    st.subheader("Filter Waktu")
     min_date = all_data["order_purchase_timestamp"].min().date()
     max_date = all_data["order_purchase_timestamp"].max().date()
     start_date = st.date_input("Dari", value=min_date, min_value=min_date, max_value=max_date)
@@ -63,14 +88,32 @@ with st.sidebar:
     st.markdown("---")
 
     # -- Filter State --
-    st.subheader("📍 Filter Negara Bagian")
-    all_states = sorted(all_data["customer_state"].dropna().unique())
-    selected_states = st.multiselect("Pilih State", options=all_states, default=[])
+    st.subheader("Filter Negara Bagian")
+
+    # Mapping kode state Brasil → nama lengkap
+    STATE_NAME_MAP = {
+        "AC": "Acre", "AL": "Alagoas", "AM": "Amazonas", "AP": "Amapá",
+        "BA": "Bahia", "CE": "Ceará", "DF": "Distrito Federal",
+        "ES": "Espírito Santo", "GO": "Goiás", "MA": "Maranhão",
+        "MG": "Minas Gerais", "MS": "Mato Grosso do Sul",
+        "MT": "Mato Grosso", "PA": "Pará", "PB": "Paraíba",
+        "PE": "Pernambuco", "PI": "Piauí", "PR": "Paraná",
+        "RJ": "Rio de Janeiro", "RN": "Rio Grande do Norte",
+        "RO": "Rondônia", "RR": "Roraima", "RS": "Rio Grande do Sul",
+        "SC": "Santa Catarina", "SE": "Sergipe", "SP": "São Paulo",
+        "TO": "Tocantins",
+    }
+    # Reverse mapping: nama → kode
+    NAME_TO_CODE = {v: k for k, v in STATE_NAME_MAP.items()}
+
+    all_state_codes = sorted(all_data["customer_state"].dropna().unique())
+    all_state_names = sorted([STATE_NAME_MAP.get(c, c) for c in all_state_codes])
+    selected_state_names = st.multiselect("Pilih State", options=all_state_names, default=[])
 
     st.markdown("---")
 
     # -- Filter Metode Pembayaran --
-    st.subheader("💳 Filter Metode Pembayaran")
+    st.subheader("Filter Metode Pembayaran")
     all_payments = sorted(all_data["payment_type"].dropna().unique())
     selected_payments = st.multiselect("Pilih Metode", options=all_payments, default=[])
 
@@ -85,9 +128,10 @@ filtered_df = filtered_df[
     & (filtered_df["order_purchase_timestamp"].dt.date <= end_date)
 ]
 
-# Filter state (jika dipilih)
-if selected_states:
-    filtered_df = filtered_df[filtered_df["customer_state"].isin(selected_states)]
+# Filter state (jika dipilih) – konversi nama kembali ke kode
+if selected_state_names:
+    selected_codes = [NAME_TO_CODE.get(n, n) for n in selected_state_names]
+    filtered_df = filtered_df[filtered_df["customer_state"].isin(selected_codes)]
 
 # Filter payment (jika dipilih)
 if selected_payments:
@@ -96,7 +140,11 @@ if selected_payments:
 # ============================================================================
 # 5. HEADER
 # ============================================================================
-st.title("📊 Dashboard Analitik E-Commerce Olist")
+st.title("Dashboard Analitik E-Commerce Olist")
+st.markdown(
+    '<p class="small-subtitle">Coding Camp by DBS Foundation And Dicoding</p>',
+    unsafe_allow_html=True,
+)
 st.markdown(
     "Analisis performa platform **Olist** berdasarkan data pesanan yang berhasil "
     "dikirim (**delivered**) pada periode **Januari 2017 – Agustus 2018**."
@@ -113,13 +161,13 @@ delivered_pct = 100.0  # Semua data sudah difilter delivered di prepare_data.py
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("🛍️ Total Pesanan", f"{total_orders:,}")
+    st.metric("Total Pesanan", f"{total_orders:,}")
 with col2:
-    st.metric("💰 Total Pendapatan (GMV)", f"R$ {total_revenue:,.2f}")
+    st.metric("Total Pendapatan (GMV)", f"R$ {total_revenue:,.2f}")
 with col3:
-    st.metric("📦 Rata-rata Nilai Pesanan (AOV)", f"R$ {aov:,.2f}")
+    st.metric("Rata-rata Nilai Pesanan (AOV)", f"R$ {aov:,.2f}")
 with col4:
-    st.metric("✅ Pesanan Berhasil", f"{delivered_pct:.1f}%")
+    st.metric("Pesanan Berhasil", f"{delivered_pct:.1f}%")
 
 st.markdown("---")
 
@@ -130,7 +178,7 @@ row2_left, row2_right = st.columns(2)
 
 # ---------- PERTANYAAN 1: Tren MoM ----------
 with row2_left:
-    st.subheader("📈 Pertanyaan 1: Tren Pertumbuhan Pesanan Bulanan (MoM)")
+    st.subheader("Pertanyaan 1: Tren Pertumbuhan Pesanan Bulanan (MoM)")
 
     monthly = (
         filtered_df.groupby("year_month")["order_id"]
@@ -192,7 +240,7 @@ with row2_left:
 
 # ---------- PERTANYAAN 3: Segmentasi RFM ----------
 with row2_right:
-    st.subheader("🧩 Pertanyaan 3: Segmentasi Pelanggan (RFM)")
+    st.subheader("Pertanyaan 3: Segmentasi Pelanggan (RFM)")
 
     # Hitung RFM
     reference_date = filtered_df["order_purchase_timestamp"].max() + pd.Timedelta(days=1)
@@ -261,7 +309,7 @@ row3_left, row3_right = st.columns(2)
 
 # ---------- PERTANYAAN 2: Kategori Produk Kritis ----------
 with row3_left:
-    st.subheader("⚠️ Pertanyaan 2: Kategori Produk dengan Review Rendah")
+    st.subheader("Pertanyaan 2: Kategori Produk dengan Review Rendah")
 
     cat_perf = (
         filtered_df.groupby("product_category_name_english")
@@ -317,7 +365,7 @@ with row3_left:
 
 # ---------- PERTANYAAN 4: Target State ----------
 with row3_right:
-    st.subheader("🎯 Pertanyaan 4: Target Negara Bagian untuk Optimasi")
+    st.subheader("Pertanyaan 4: Target Negara Bagian untuk Optimasi")
 
     # Data: customer spending per unique customer
     cust_spending = (
